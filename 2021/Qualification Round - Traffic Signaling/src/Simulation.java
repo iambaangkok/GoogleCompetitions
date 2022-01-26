@@ -1,5 +1,7 @@
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -11,9 +13,12 @@ import java.util.TreeMap;
 public class Simulation{
 
 
-    public final String inputPath = "tests/b.txt";
+    public final String inputPath = "tests/";
+    public final String outputPath = "outputs/";
+    public static String inputFileName = "a.txt";
+    public static String outputFileName = "out_a_v0.txt";
 
-    public final boolean DEBUG = true;
+    public static boolean DEBUG = false;
 
     public int SimulationTime;
     public int nIntersections;
@@ -37,9 +42,8 @@ public class Simulation{
      * @implNote LightSchedule's green light time will be proportional to the number of car that will 
      * pass that TrafficLight compared to the total number of car that will pass that Intersection. 
      */
-    public void GenerateTrafficLightSchedule(int greenLightTimePerLoop){
-
-        // Proportional
+    public void GenerateTrafficLightSchedule(double greenLightTimePerLoop){
+        // Proportional with static greenlighttimeperloop
         for(Intersection inter: AllIntersections){
             TrafficLight tf = inter.trafficLight;
 
@@ -63,23 +67,38 @@ public class Simulation{
      * pass that TrafficLight compared to the total number of car that will pass that Intersection. 
      */
     public void GenerateTrafficLightSchedule(){
-        // HOW TO CALCULATE greenLightTimePerLoop ??????????????????
+
+        double greenLightTimeMultiplier = 3;
+
         // Proportional
         for(Intersection inter: AllIntersections){
             TrafficLight tf = inter.trafficLight;
-            int greenLightTimePerLoop = 2;
+            double greenLightTimePerLoop = 0;
+            
 
             int nCarMustPassIntersection = 0;
             for(Street inSt : inter.IncomingStreets){
                 nCarMustPassIntersection += inSt.nCarMustPass;
             }
-            if(nCarMustPassIntersection < 50){
-
+            
+            if(nCarMustPassIntersection != 0){
+                greenLightTimePerLoop = Math.log(nCarMustPassIntersection)*greenLightTimeMultiplier;
+            }else{
+                greenLightTimePerLoop = 0;
             }
+            
+            
             for(Street inSt : inter.IncomingStreets){
-                double proportion = inSt.nCarMustPass/((double)nCarMustPassIntersection);
+                double proportion = 0;
+                if(nCarMustPassIntersection != 0){
+                    proportion = inSt.nCarMustPass/((double)nCarMustPassIntersection);
+                }else{
+                    proportion = 0;
+                }
                 int greenLightTime = (int)Math.ceil(proportion*greenLightTimePerLoop);
-                tf.LightSchedule.put(inSt, greenLightTime);
+                if(greenLightTime > 0){
+                    tf.LightSchedule.put(inSt, greenLightTime);
+                }
 
                 if(DEBUG) System.out.println("   " + inSt.name + ": " + proportion + " " + tf.LightSchedule.get(inSt));
             }
@@ -99,8 +118,37 @@ public class Simulation{
         }
     }
 
+    public void WriteOutput(){
+        try(FileWriter fw = new FileWriter(outputPath + outputFileName);) {
+            int AllInterCount = 0;
+            for(Intersection inter : AllIntersections){
+                TrafficLight tf = inter.trafficLight;
+                if(!tf.LightSchedule.isEmpty()){
+                    AllInterCount++;
+                }
+            }
+            fw.write(AllInterCount + "\n");
+            for(Intersection inter : AllIntersections){
+                Map<Street, Integer> ls = inter.trafficLight.LightSchedule;
+                if(!ls.isEmpty()){
+                    fw.write(inter.label + "\n");
+                    fw.write(ls.size() + "\n");
+                    for(Street st : ls.keySet()){
+                        fw.write(st.name + " " + ls.get(st) + "\n");
+                    }
+                }
+            }
+
+
+
+            
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     public void ReadInput(){
-        File inputFile = new File(inputPath);
+        File inputFile = new File(inputPath+inputFileName);
         try(Scanner sc = new Scanner(inputFile);){
             // INPUT: first line
             SimulationTime = sc.nextInt();
@@ -157,10 +205,24 @@ public class Simulation{
 
     public static void main(String[] args) {
 
-        Simulation sim = new Simulation();
-        sim.ReadInput();
-        sim.GenerateTrafficLightSchedule(2);
-        sim.DisplayTrafficLightSchedule();
-
+        int version = 0;
+        for(int i = 0 ; i < 6; ++i){
+            Simulation sim = new Simulation();
+            // System.out.println(Math.log(2));
+            // System.out.println(Math.log(10));
+            // System.out.println(Math.log(100));
+            // System.out.println(Math.log(100));
+            // System.out.println(Math.log(10000));
+            // System.out.println(Math.log(100000));
+            DEBUG = false;
+            inputFileName = String.valueOf((char)('a'+i)) + ".txt";
+            outputFileName = "out_" + String.valueOf((char)('a'+i)) + "v" + version + ".txt";
+            sim.ReadInput();
+            System.out.println(inputFileName + " " + outputFileName);
+            sim.GenerateTrafficLightSchedule();
+            // sim.GenerateTrafficLightSchedule(2);
+            //sim.DisplayTrafficLightSchedule();
+            sim.WriteOutput();
+        }
     }
 }
