@@ -1,10 +1,11 @@
 import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 public class TrafficLight {
-    public List<Pair<Street, Integer>> LightSchedule;
+    public Map<Street, Integer> LightSchedule;
 
     TrafficLight(){
-        LightSchedule = new ArrayList<>();
+        LightSchedule = new HashMap<>();
     }
 }
