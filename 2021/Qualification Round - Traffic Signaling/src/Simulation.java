@@ -138,10 +138,6 @@ public class Simulation{
                     }
                 }
             }
-
-
-
-            
         } catch (IOException e) {
             e.printStackTrace();
         }
